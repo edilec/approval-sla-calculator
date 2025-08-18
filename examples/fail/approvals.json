@@ -1,0 +1,1 @@
+{"schemaVersion":"1","approvals":[{"id":"case-b","queue":"queue-a","owner":"owner-a","priority":"normal","requestedAt":"2026-03-06T21:00:00Z","completedAt":"2026-03-09T14:00:00Z","pauses":[{"start":"2026-03-09T13:00:00Z","end":"2026-03-09T13:30:00Z"}]}]}

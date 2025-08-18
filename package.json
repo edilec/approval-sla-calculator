@@ -7,8 +7,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "check": "node --test"
   },
+  "bin": { "approval-sla-calculator": "./bin/approval-sla-calculator.mjs" },
+  "exports": { ".": "./src/index.mjs" },
   "license": "MIT",
   "repository": {
     "type": "git",
