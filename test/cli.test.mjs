@@ -98,8 +98,11 @@ test('symlink outside root is refused without reading its content', () => {
 });
 
 test('packaged bin runs passing and failing examples', async () => {
-  const { TOOL_ID } = await import('../src/index.mjs');
+  const { TOOL_ID, evaluateApprovals } = await import('../src/index.mjs');
   assert.equal(TOOL_ID,'approval-sla-calculator');
+  const direct=evaluateApprovals({schemaVersion:'1',approvals:[approval('a','2026-03-09T13:00:00Z','2026-03-09T13:01:00Z')]},policy);
+  assert.equal(direct.status,'pass');
+  assert.equal(direct.approvals[0].businessMinutes,1);
   for (const [folder,code] of [['pass',0],['fail',1]]) {
     const p=spawnSync(process.execPath,[bin,'--root',join(exampleRoot,folder),'--approvals','approvals.json','--policy','policy.json'],{encoding:'utf8'});
     assert.equal(p.status,code,p.stderr);

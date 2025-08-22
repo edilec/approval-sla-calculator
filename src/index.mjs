@@ -1,1 +1,1 @@
-export const TOOL_ID = 'approval-sla-calculator';
+export { TOOL_ID, evaluateApprovals } from './cli.mjs';

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { readFileSync, realpathSync, statSync } from 'node:fs';
 import { resolve, isAbsolute } from 'node:path';
-import { TOOL_ID } from './index.mjs';
+import { pathToFileURL } from 'node:url';
 
+export const TOOL_ID='approval-sla-calculator';
 const TOOL=TOOL_ID;
 const MAX_BYTES=1024*1024, MAX_APPROVALS=100, MAX_DEPTH=16, MAX_SPAN_MINUTES=31*24*60, DEADLINE_MS=5000;
 const SEVERITY=Object.freeze({
@@ -87,7 +88,7 @@ function localParts(formatter,t) {
   const weekdays={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
   return {day:`${p.year}-${p.month}-${p.day}`,weekday:weekdays[p.weekday],minute:Number(p.hour)*60+Number(p.minute)};
 }
-function evaluate(exported,policy,deadline) {
+export function evaluateApprovals(exported,policy,deadline=Infinity) {
   if(!obj(exported)||exported.schemaVersion!=='1'||!Array.isArray(exported.approvals)) return report([finding('input-invalid','@approvals')]);
   if(!policyValid(policy)) return report([finding('input-invalid','@policy')]);
   if(exported.approvals.length>MAX_APPROVALS) return report([finding('approval-limit','@approvals')]);
@@ -115,7 +116,7 @@ function evaluate(exported,policy,deadline) {
     for(const [ps,pe] of pauses) { pauseMinutes+=Math.max(0,pe-Math.max(ps,lastEnd))/60000; lastEnd=Math.max(lastEnd,pe); }
     let business=0, pi=0;
     for(let t=start;t<end;t+=60000) {
-      if((t-start)%(60000*1024)===0&&Date.now()>deadline) return report([finding('timeout','@approvals',pointer)]);
+      if(deadline!==Infinity&&(t-start)%(60000*1024)===0&&Date.now()>deadline) return report([finding('timeout','@approvals',pointer)]);
       while(pi<pauses.length&&pauses[pi][1]<=t) pi++;
       if(pi<pauses.length&&pauses[pi][0]<=t&&t<pauses[pi][1]) continue;
       const l=localParts(formatter,t);
@@ -142,7 +143,7 @@ function evaluate(exported,policy,deadline) {
   }
   return report(findings,{checked:rows.length,errors:0,warnings:0,completed:rows.filter(a=>a.state==='completed').length,open:rows.filter(a=>a.state==='open').length},{approvals:rows,groups:{byQueue,byOwner,byPriority}});
 }
-function main() {
+export function runCli() {
   let a;
   try { a=args(process.argv.slice(2)); } catch(e) { console.error(e.message); process.exitCode=2; return; }
   if(a.help) { console.log('Usage: approval-sla-calculator --root DIR --approvals FILE --policy FILE\nLocal JSON exports only; stdout is a JSON report, stderr is diagnostics.'); return; }
@@ -151,8 +152,8 @@ function main() {
   let approvals,policy;
   try { approvals=input(root,a['--approvals']); } catch { console.log(JSON.stringify(report([finding('input-unavailable','@approvals')]))); process.exitCode=2; return; }
   try { policy=input(root,a['--policy']); } catch { console.log(JSON.stringify(report([finding('input-unavailable','@policy')]))); process.exitCode=2; return; }
-  const r=evaluate(approvals,policy,Date.now()+DEADLINE_MS);
+  const r=evaluateApprovals(approvals,policy,Date.now()+DEADLINE_MS);
   console.log(JSON.stringify(r));
   process.exitCode=r.status==='pass'?0:r.status==='fail'?1:2;
 }
-main();
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href) runCli();

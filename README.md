@@ -7,7 +7,7 @@ node bin/approval-sla-calculator.mjs --root examples/pass --approvals approvals.
 node bin/approval-sla-calculator.mjs --root examples/fail --approvals approvals.json --policy policy.json
 ```
 
-The first command exits `0`; the second exits `1` because 90 business minutes exceed its 89-minute policy. `--help` describes the command. Standard output is one deterministic JSON report; bad usage writes only to standard error. Both input paths are relative to `--root`. Real paths must remain within the real root.
+The first command exits `0`; the second exits `1` because 90 business minutes exceed its 89-minute policy. The package exports `TOOL_ID` and `evaluateApprovals(export, policy)` for direct library use without file I/O. `--help` describes the command. Standard output is one deterministic JSON report; bad usage writes only to standard error. Both input paths are relative to `--root`. Real paths must remain within the real root.
 
 The export is `{ "schemaVersion":"1", "approvals":[...] }`. Each approval has `id`, `queue`, `owner`, `priority`, `requestedAt`, optional `completedAt`, and `pauses` as an array of `{start,end}` UTC or offset timestamps. Timestamps must include seconds and fall on whole minutes. Intervals are half-open. An open approval has no `completedAt`; the policy's explicit `asOf` ends its *accrued* time only. Pauses cannot extend outside the measured interval; overlapping pauses are unioned.
 
