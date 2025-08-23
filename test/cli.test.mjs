@@ -58,6 +58,15 @@ test('holiday removes business minutes without changing elapsed minutes', () => 
   assert.equal(r.report.approvals[0].businessMinutes,0);
 });
 
+test('missing timezone is incomplete instead of silently evaluating as UTC', async () => {
+  const { evaluateApprovals }=await import('../src/index.mjs');
+  const { timeZone, ...missingZone }=policy;
+  const r=evaluateApprovals({schemaVersion:'1',approvals:[approval('a','2026-03-09T13:00:00Z','2026-03-09T13:01:00Z')]},missingZone);
+  assert.equal(r.status,'incomplete');
+  assert.equal(r.findings[0].ruleId,'input-invalid');
+  assert.equal(r.findings[0].location.file,'@policy');
+});
+
 test('record limit allows N and refuses N+1', () => {
   const make=n=>Array.from({length:n},(_,i)=>approval(`a${i}`,'2026-03-09T13:00:00Z','2026-03-09T13:01:00Z'));
   assert.equal(run(make(100)).status,0);
