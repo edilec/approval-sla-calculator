@@ -148,7 +148,7 @@ export function runCli() {
   try { a=args(process.argv.slice(2)); } catch(e) { console.error(e.message); process.exitCode=2; return; }
   if(a.help) { console.log('Usage: approval-sla-calculator --root DIR --approvals FILE --policy FILE\nLocal JSON exports only; stdout is a JSON report, stderr is diagnostics.'); return; }
   let root;
-  try { root=realpathSync(a['--root']); } catch { console.error('Invalid --root directory.'); process.exitCode=2; return; }
+  try { root=realpathSync(a['--root']); if(!statSync(root).isDirectory()) throw new Error('not a directory'); } catch { console.error('Invalid --root directory.'); process.exitCode=2; return; }
   let approvals,policy;
   try { approvals=input(root,a['--approvals']); } catch { console.log(JSON.stringify(report([finding('input-unavailable','@approvals')]))); process.exitCode=2; return; }
   try { policy=input(root,a['--policy']); } catch { console.log(JSON.stringify(report([finding('input-unavailable','@policy')]))); process.exitCode=2; return; }

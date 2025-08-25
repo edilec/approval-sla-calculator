@@ -106,6 +106,17 @@ test('symlink outside root is refused without reading its content', () => {
   } finally { rmSync(dir,{recursive:true,force:true}); rmSync(outside,{recursive:true,force:true}); }
 });
 
+test('a file supplied as root is invalid usage with empty stdout', () => {
+  const dir=mkdtempSync(join(tmpdir(),'sla-calculator-'));
+  try {
+    writeFileSync(join(dir,'not-a-directory.json'),'{}');
+    const p=spawnSync(process.execPath,[cli,'--root',join(dir,'not-a-directory.json'),'--approvals','approvals.json','--policy','policy.json'],{encoding:'utf8'});
+    assert.equal(p.status,2);
+    assert.equal(p.stdout,'');
+    assert.match(p.stderr,/Invalid --root/);
+  } finally { rmSync(dir,{recursive:true,force:true}); }
+});
+
 test('packaged bin runs passing and failing examples', async () => {
   const { TOOL_ID, evaluateApprovals } = await import('../src/index.mjs');
   assert.equal(TOOL_ID,'approval-sla-calculator');
