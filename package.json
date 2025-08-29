@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --test"
+    "lint": "node --check src/index.mjs && node --check src/cli.mjs && node --check bin/approval-sla-calculator.mjs",
+    "check": "npm run lint && npm test"
   },
   "bin": { "approval-sla-calculator": "./bin/approval-sla-calculator.mjs" },
   "exports": { ".": "./src/index.mjs" },
