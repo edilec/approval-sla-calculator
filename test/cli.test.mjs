@@ -20,6 +20,15 @@ function run(approvals, rules=policy) {
     return {...p,report:p.stdout ? JSON.parse(p.stdout) : null};
   } finally { rmSync(dir,{recursive:true,force:true}); }
 }
+function runRaw(raw,rules=policy) {
+  const dir=mkdtempSync(join(tmpdir(),'sla-calculator-'));
+  try {
+    writeFileSync(join(dir,'approvals.json'),raw);
+    writeFileSync(join(dir,'policy.json'),JSON.stringify(rules));
+    const p=spawnSync(process.execPath,[cli,'--root',dir,'--approvals','approvals.json','--policy','policy.json'],{encoding:'utf8'});
+    return {...p,report:p.stdout?JSON.parse(p.stdout):null};
+  } finally {rmSync(dir,{recursive:true,force:true});}
+}
 
 test('good DST-spanning approval excludes a pause from elapsed and business minutes', () => {
   const a=run([approval('secret-id','2026-03-06T21:00:00Z','2026-03-09T14:00:00Z',[{start:'2026-03-09T13:00:00Z',end:'2026-03-09T13:30:00Z'}])]);
@@ -73,6 +82,32 @@ test('record limit allows N and refuses N+1', () => {
   const r=run(make(101));
   assert.equal(r.status,2);
   assert.equal(r.report.findings[0].ruleId,'approval-limit');
+});
+
+test('exact byte bound is accepted and one extra byte is incomplete', () => {
+  const base=JSON.stringify({schemaVersion:'1',approvals:[approval('a','2026-03-09T13:00:00Z','2026-03-09T13:01:00Z')]});
+  const exact=base+' '.repeat(1_048_576-Buffer.byteLength(base));
+  assert.equal(runRaw(exact).status,0);
+  const over=runRaw(exact+' ');
+  assert.equal(over.status,2);
+  assert.equal(over.report.findings[0].ruleId,'input-unavailable');
+});
+
+test('JSON depth 16 is accepted and depth 17 is incomplete', () => {
+  const nested=n=>{const a=approval('a','2026-03-09T13:00:00Z','2026-03-09T13:01:00Z');let x=a;for(let i=0;i<n;i++){x.extra={};x=x.extra;}return [a];};
+  assert.equal(run(nested(14)).status,0);
+  const over=run(nested(15));
+  assert.equal(over.status,2);
+  assert.equal(over.report.findings[0].ruleId,'input-unavailable');
+});
+
+test('injected time limit accepts 5000 ms and rejects 5001 ms', async () => {
+  const {evaluateApprovals}=await import('../src/index.mjs');
+  const exported={schemaVersion:'1',approvals:[approval('a','2026-03-09T13:00:00Z','2026-03-09T13:01:00Z')]};
+  assert.equal(evaluateApprovals(exported,policy,5000,()=>5000).status,'pass');
+  const over=evaluateApprovals(exported,policy,5000,()=>5001);
+  assert.equal(over.status,'incomplete');
+  assert.equal(over.findings[0].ruleId,'timeout');
 });
 
 test('31-day span is legal and one minute more is incomplete', () => {

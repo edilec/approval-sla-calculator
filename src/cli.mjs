@@ -88,7 +88,7 @@ function localParts(formatter,t) {
   const weekdays={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
   return {day:`${p.year}-${p.month}-${p.day}`,weekday:weekdays[p.weekday],minute:Number(p.hour)*60+Number(p.minute)};
 }
-export function evaluateApprovals(exported,policy,deadline=Infinity) {
+export function evaluateApprovals(exported,policy,deadline=Infinity,now=Date.now) {
   if(!obj(exported)||exported.schemaVersion!=='1'||!Array.isArray(exported.approvals)) return report([finding('input-invalid','@approvals')]);
   if(!policyValid(policy)) return report([finding('input-invalid','@policy')]);
   if(exported.approvals.length>MAX_APPROVALS) return report([finding('approval-limit','@approvals')]);
@@ -116,7 +116,7 @@ export function evaluateApprovals(exported,policy,deadline=Infinity) {
     for(const [ps,pe] of pauses) { pauseMinutes+=Math.max(0,pe-Math.max(ps,lastEnd))/60000; lastEnd=Math.max(lastEnd,pe); }
     let business=0, pi=0;
     for(let t=start;t<end;t+=60000) {
-      if(deadline!==Infinity&&(t-start)%(60000*1024)===0&&Date.now()>deadline) return report([finding('timeout','@approvals',pointer)]);
+      if(deadline!==Infinity&&(t-start)%(60000*1024)===0&&now()>deadline) return report([finding('timeout','@approvals',pointer)]);
       while(pi<pauses.length&&pauses[pi][1]<=t) pi++;
       if(pi<pauses.length&&pauses[pi][0]<=t&&t<pauses[pi][1]) continue;
       const l=localParts(formatter,t);
