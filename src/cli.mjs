@@ -143,7 +143,7 @@ export function evaluateApprovals(exported,policy,deadline=Infinity,now=Date.now
   }
   return report(findings,{checked:rows.length,errors:0,warnings:0,completed:rows.filter(a=>a.state==='completed').length,open:rows.filter(a=>a.state==='open').length},{approvals:rows,groups:{byQueue,byOwner,byPriority}});
 }
-export function runCli() {
+export function runCli(now=Date.now) {
   let a;
   try { a=args(process.argv.slice(2)); } catch(e) { console.error(e.message); process.exitCode=2; return; }
   if(a.help) { console.log('Usage: approval-sla-calculator --root DIR --approvals FILE --policy FILE\nLocal JSON exports only; stdout is a JSON report, stderr is diagnostics.'); return; }
@@ -152,7 +152,7 @@ export function runCli() {
   let approvals,policy;
   try { approvals=input(root,a['--approvals']); } catch { console.log(JSON.stringify(report([finding('input-unavailable','@approvals')]))); process.exitCode=2; return; }
   try { policy=input(root,a['--policy']); } catch { console.log(JSON.stringify(report([finding('input-unavailable','@policy')]))); process.exitCode=2; return; }
-  const r=evaluateApprovals(approvals,policy,Date.now()+DEADLINE_MS);
+  const r=evaluateApprovals(approvals,policy,now()+DEADLINE_MS,now);
   console.log(JSON.stringify(r));
   process.exitCode=r.status==='pass'?0:r.status==='fail'?1:2;
 }

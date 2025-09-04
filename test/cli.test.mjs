@@ -110,6 +110,21 @@ test('injected time limit accepts 5000 ms and rejects 5001 ms', async () => {
   assert.equal(over.findings[0].ruleId,'timeout');
 });
 
+test('CLI clock seam enforces exact 5000/5001 ms bound', async () => {
+  const {runCli}=await import('../src/cli.mjs');
+  const dir=mkdtempSync(join(tmpdir(),'sla-clock-'));
+  const oldArgv=process.argv,oldLog=console.log,oldExit=process.exitCode;
+  try {
+    writeFileSync(join(dir,'approvals.json'),JSON.stringify({schemaVersion:'1',approvals:[approval('a','2026-03-09T13:00:00Z','2026-03-09T13:01:00Z')]}));
+    writeFileSync(join(dir,'policy.json'),JSON.stringify(policy));
+    process.argv=[process.execPath,cli,'--root',dir,'--approvals','approvals.json','--policy','policy.json'];
+    const invoke=elapsed=>{const ticks=[0,elapsed];let output='';console.log=x=>{output=x;};runCli(()=>ticks.shift()??elapsed);return {code:process.exitCode,report:JSON.parse(output)};};
+    assert.equal(invoke(5000).code,0);
+    const over=invoke(5001);
+    assert.equal(over.code,2);assert.equal(over.report.findings[0].ruleId,'timeout');
+  } finally {process.argv=oldArgv;console.log=oldLog;process.exitCode=oldExit;rmSync(dir,{recursive:true,force:true});}
+});
+
 test('31-day span is legal and one minute more is incomplete', () => {
   const atLimit=run([approval('a','2026-01-01T00:00:00Z','2026-02-01T00:00:00Z')],{...policy,asOf:'2026-02-02T00:00:00Z'});
   assert.equal(atLimit.status,1);
