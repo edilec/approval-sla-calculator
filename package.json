@@ -1,0 +1,21 @@
+{
+  "name": "approval-sla-calculator",
+  "version": "0.1.0",
+  "description": "Calculate approval service levels by queue, owner, priority and elapsed time.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "lint": "node --check src/index.mjs && node --check src/cli.mjs && node --check bin/approval-sla-calculator.mjs",
+    "check": "npm run lint && npm test"
+  },
+  "bin": { "approval-sla-calculator": "./bin/approval-sla-calculator.mjs" },
+  "exports": { ".": "./src/index.mjs" },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/edilec/approval-sla-calculator"
+  }
+}
